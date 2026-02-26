@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sprinkler Dashboard</title>
+</head>
+<body>
+  <h1>ESP32 Sprinkler</h1>
+  <button onclick="sendCommand(0, 'ON')">Zone 1 ON</button>
+  <button onclick="sendCommand(0, 'OFF')">Zone 1 OFF</button>
+  <button onclick="sendCommand(1, 'ON')">Zone 2 ON</button>
+  <button onclick="sendCommand(1, 'OFF')">Zone 2 OFF</button>
+  <button onclick="sendCommand(2, 'ON')">Zone 3 ON</button>
+  <button onclick="sendCommand(2, 'OFF')">Zone 3 OFF</button>
+
+<script>
+  function sendCommand(zone, cmd){
+    fetch(http://YOUR_NGROK_URL/${cmd}?z=${zone})
+    .then(res=>console.log(res))
+    .catch(err=>console.error(err));
+  }
+</script>
+</body>
+</html>
