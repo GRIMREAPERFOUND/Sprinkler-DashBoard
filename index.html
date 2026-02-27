@@ -1,125 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Sprinkler</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body {
-    margin:0;
-    font-family: Arial;
-    background: #0f2027;
-    color: white;
-}
-
-header {
-    padding:20px;
-    text-align:center;
-    background:#1c1c1c;
-    box-shadow:0 0 20px #00f2ff;
-}
-
-.container {
-    padding:20px;
-}
-
-button {
-    padding:15px;
-    margin:10px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    background:#00f2ff;
-    font-size:16px;
-}
-
-.card {
-    background:#1c1c1c;
-    padding:20px;
-    margin:20px 0;
-    border-radius:12px;
-    box-shadow:0 0 20px rgba(0,242,255,0.4);
-}
-</style>
+  <title>Sprinkler Dashboard</title>
 </head>
-
 <body>
-
-<header>
-<h1>🌿 Smart Sprinkler Control</h1>
-</header>
-
-<div class="container">
-
-<div class="card">
-<h2>💧 Zone Control</h2>
-<button onclick="turnOn()">Turn ON</button>
-<button onclick="turnOff()">Turn OFF</button>
-</div>
-
-<div class="card">
-<h2>🌡 Soil Moisture</h2>
-<h3 id="moistureValue">-- %</h3>
-<canvas id="chart"></canvas>
-</div>
-
-</div>
+  <h1>ESP32 Sprinkler</h1>
+  <button onclick="sendCommand(0, 'ON')">Zone 1 ON</button>
+  <button onclick="sendCommand(0, 'OFF')">Zone 1 OFF</button>
+  <button onclick="sendCommand(1, 'ON')">Zone 2 ON</button>
+  <button onclick="sendCommand(1, 'OFF')">Zone 2 OFF</button>
+  <button onclick="sendCommand(2, 'ON')">Zone 3 ON</button>
+  <button onclick="sendCommand(2, 'OFF')">Zone 3 OFF</button>
 
 <script>
-function turnOn(){
-    fetch("/on");
-}
-
-function turnOff(){
-    fetch("/off");
-}
-
-const ctx = document.getElementById('chart').getContext('2d');
-
-const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            label: 'Moisture %',
-            data: [],
-            borderWidth: 2,
-            tension: 0.3
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                min: 0,
-                max: 100
-            }
-        }
-    }
-});
-
-function updateChart(value){
-    const time = new Date().toLocaleTimeString();
-    chart.data.labels.push(time);
-    chart.data.datasets[0].data.push(value);
-
-    if(chart.data.labels.length > 20){
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-    }
-
-    chart.update();
-}
-
-setInterval(() => {
-    fetch("/data")
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("moistureValue").innerText = data.moisture + " %";
-        updateChart(data.moisture);
-    });
-}, 3000);
+  function sendCommand(zone, cmd){
+    fetch('https://untremolant-teasingly-chance.ngrok-free.dev')
+    .then(res=>console.log(res))
+    .catch(err=>console.error(err));
+  }
 </script>
-
 </body>
 </html>
