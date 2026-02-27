@@ -1,168 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Sprinkler Control</title>
+<title>Smart Sprinkler</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --accent: #00f7ff;
-  --text: #f1f5f9;
-}
-
-body.light {
-  --bg: #f1f5f9;
-  --card: #ffffff;
-  --accent: #0066ff;
-  --text: #111;
-}
-
 body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  transition: 0.3s;
+    margin:0;
+    font-family: Arial;
+    background: #0f2027;
+    color: white;
 }
 
 header {
-  padding: 20px;
-  text-align: center;
-  font-size: 24px;
-  letter-spacing: 2px;
-  text-shadow: 0 0 15px var(--accent);
+    padding:20px;
+    text-align:center;
+    background:#1c1c1c;
+    box-shadow:0 0 20px #00f2ff;
 }
 
-.dashboard {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  padding: 20px;
-}
-
-.card {
-  background: var(--card);
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 0 20px var(--accent);
-  transition: 0.3s;
-}
-
-.card:hover {
-  transform: scale(1.03);
+.container {
+    padding:20px;
 }
 
 button {
-  background: var(--accent);
-  border: none;
-  padding: 10px 15px;
-  border-radius: 10px;
-  color: black;
-  cursor: pointer;
-  font-weight: bold;
-  margin-top: 10px;
+    padding:15px;
+    margin:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    background:#00f2ff;
+    font-size:16px;
 }
 
-button:hover {
-  opacity: 0.8;
-}
-
-.toggle {
-  position: fixed;
-  top: 15px;
-  right: 15px;
+.card {
+    background:#1c1c1c;
+    padding:20px;
+    margin:20px 0;
+    border-radius:12px;
+    box-shadow:0 0 20px rgba(0,242,255,0.4);
 }
 </style>
 </head>
 
 <body>
 
-<div class="toggle">
-  <button onclick="toggleMode()">🌙 Toggle Mode</button>
+<header>
+<h1>🌿 Smart Sprinkler Control</h1>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>💧 Zone Control</h2>
+<button onclick="turnOn()">Turn ON</button>
+<button onclick="turnOff()">Turn OFF</button>
 </div>
 
-<header>💧 SMART SPRINKLER CONTROL PANEL</header>
-
-<div class="dashboard">
-
-  <div class="card">
-    <h3>💧 Zone 1</h3>
-    <button onclick="toggleZone(1)">Toggle</button>
-    <p>Moisture: <span id="z1">--</span></p>
-  </div>
-
-  <div class="card">
-    <h3>💧 Zone 2</h3>
-    <button onclick="toggleZone(2)">Toggle</button>
-    <p>Moisture: <span id="z2">--</span></p>
-  </div>
-
-  <div class="card">
-    <h3>🌡 Moisture Overview</h3>
-    <p id="moistureInfo">Loading...</p>
-  </div>
-
-  <div class="card">
-    <h3>☁ Weather</h3>
-    <p id="weatherInfo">Loading weather...</p>
-  </div>
-
-  <div class="card">
-    <h3>⚙ Settings</h3>
-    <label>Water Duration (sec)</label>
-    <input type="range" min="5" max="60" value="10" id="duration">
-  </div>
-
-  <div class="card">
-    <h3>🕒 Schedule</h3>
-    <label>Start Hour:</label>
-    <input type="number" min="0" max="23" id="scheduleHour" value="6">
-    <button onclick="saveSchedule()">Save</button>
-  </div>
+<div class="card">
+<h2>🌡 Soil Moisture</h2>
+<h3 id="moistureValue">-- %</h3>
+<canvas id="chart"></canvas>
+</div>
 
 </div>
 
 <script>
-const ESP_IP = "http://192.168.1.100"; // CHANGE THIS
-
-function toggleMode(){
-  document.body.classList.toggle("light");
+function turnOn(){
+    fetch("/on");
 }
 
-function toggleZone(zone){
-  fetch(`${ESP_IP}/zone${zone}/toggle`);
+function turnOff(){
+    fetch("/off");
 }
 
-async function getMoisture(){
-  const res = await fetch(`${ESP_IP}/moisture`);
-  const data = await res.json();
-  document.getElementById("z1").innerText = data.zone1 + "%";
-  document.getElementById("z2").innerText = data.zone2 + "%";
-  document.getElementById("moistureInfo").innerText =
-    `Zone1: ${data.zone1}% | Zone2: ${data.zone2}%`;
+const ctx = document.getElementById('chart').getContext('2d');
+
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Moisture %',
+            data: [],
+            borderWidth: 2,
+            tension: 0.3
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                min: 0,
+                max: 100
+            }
+        }
+    }
+});
+
+function updateChart(value){
+    const time = new Date().toLocaleTimeString();
+    chart.data.labels.push(time);
+    chart.data.datasets[0].data.push(value);
+
+    if(chart.data.labels.length > 20){
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+    }
+
+    chart.update();
 }
 
-async function getWeather(){
-  try {
-    const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=14.65&longitude=121.07&current_weather=true");
-    const data = await res.json();
-    document.getElementById("weatherInfo").innerText =
-      `Temp: ${data.current_weather.temperature}°C`;
-  } catch {
-    document.getElementById("weatherInfo").innerText = "Weather unavailable";
-  }
-}
-
-function saveSchedule(){
-  const hour = document.getElementById("scheduleHour").value;
-  fetch(`${ESP_IP}/schedule?hour=${hour}`);
-}
-
-setInterval(getMoisture, 5000);
-getWeather();
+setInterval(() => {
+    fetch("/data")
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("moistureValue").innerText = data.moisture + " %";
+        updateChart(data.moisture);
+    });
+}, 3000);
 </script>
 
 </body>
