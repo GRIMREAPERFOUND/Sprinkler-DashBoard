@@ -1,23 +1,169 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Sprinkler Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Sprinkler Control</title>
+
+<style>
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --accent: #00f7ff;
+  --text: #f1f5f9;
+}
+
+body.light {
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --accent: #0066ff;
+  --text: #111;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: 0.3s;
+}
+
+header {
+  padding: 20px;
+  text-align: center;
+  font-size: 24px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 15px var(--accent);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 0 20px var(--accent);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: scale(1.03);
+}
+
+button {
+  background: var(--accent);
+  border: none;
+  padding: 10px 15px;
+  border-radius: 10px;
+  color: black;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+.toggle {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+}
+</style>
 </head>
+
 <body>
-  <h1>ESP32 Sprinkler</h1>
-  <button onclick="sendCommand(0, 'ON')">Zone 1 ON</button>
-  <button onclick="sendCommand(0, 'OFF')">Zone 1 OFF</button>
-  <button onclick="sendCommand(1, 'ON')">Zone 2 ON</button>
-  <button onclick="sendCommand(1, 'OFF')">Zone 2 OFF</button>
-  <button onclick="sendCommand(2, 'ON')">Zone 3 ON</button>
-  <button onclick="sendCommand(2, 'OFF')">Zone 3 OFF</button>
+
+<div class="toggle">
+  <button onclick="toggleMode()">🌙 Toggle Mode</button>
+</div>
+
+<header>💧 SMART SPRINKLER CONTROL PANEL</header>
+
+<div class="dashboard">
+
+  <div class="card">
+    <h3>💧 Zone 1</h3>
+    <button onclick="toggleZone(1)">Toggle</button>
+    <p>Moisture: <span id="z1">--</span></p>
+  </div>
+
+  <div class="card">
+    <h3>💧 Zone 2</h3>
+    <button onclick="toggleZone(2)">Toggle</button>
+    <p>Moisture: <span id="z2">--</span></p>
+  </div>
+
+  <div class="card">
+    <h3>🌡 Moisture Overview</h3>
+    <p id="moistureInfo">Loading...</p>
+  </div>
+
+  <div class="card">
+    <h3>☁ Weather</h3>
+    <p id="weatherInfo">Loading weather...</p>
+  </div>
+
+  <div class="card">
+    <h3>⚙ Settings</h3>
+    <label>Water Duration (sec)</label>
+    <input type="range" min="5" max="60" value="10" id="duration">
+  </div>
+
+  <div class="card">
+    <h3>🕒 Schedule</h3>
+    <label>Start Hour:</label>
+    <input type="number" min="0" max="23" id="scheduleHour" value="6">
+    <button onclick="saveSchedule()">Save</button>
+  </div>
+
+</div>
 
 <script>
-  function sendCommand(zone, cmd){
-    fetch('https://untremolant-teasingly-chance.ngrok-free.dev')
-    .then(res=>console.log("Sent"))
-    .catch(err=>console.error(err));
+const ESP_IP = "http://192.168.1.100"; // CHANGE THIS
+
+function toggleMode(){
+  document.body.classList.toggle("light");
+}
+
+function toggleZone(zone){
+  fetch(`${ESP_IP}/zone${zone}/toggle`);
+}
+
+async function getMoisture(){
+  const res = await fetch(`${ESP_IP}/moisture`);
+  const data = await res.json();
+  document.getElementById("z1").innerText = data.zone1 + "%";
+  document.getElementById("z2").innerText = data.zone2 + "%";
+  document.getElementById("moistureInfo").innerText =
+    `Zone1: ${data.zone1}% | Zone2: ${data.zone2}%`;
+}
+
+async function getWeather(){
+  try {
+    const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=14.65&longitude=121.07&current_weather=true");
+    const data = await res.json();
+    document.getElementById("weatherInfo").innerText =
+      `Temp: ${data.current_weather.temperature}°C`;
+  } catch {
+    document.getElementById("weatherInfo").innerText = "Weather unavailable";
   }
+}
+
+function saveSchedule(){
+  const hour = document.getElementById("scheduleHour").value;
+  fetch(`${ESP_IP}/schedule?hour=${hour}`);
+}
+
+setInterval(getMoisture, 5000);
+getWeather();
 </script>
+
 </body>
 </html>
